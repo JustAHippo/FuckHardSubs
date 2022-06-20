@@ -26,6 +26,8 @@ startTime = 0.0
 textSub = open("finishedSub.srt", "w")
 subChangeTrigger = False
 parsed = list()
+unmodifiedStart = 0.0
+unmodifiedEnd = 0.0
 def filterText(textIn):
   textOut = textIn
   textOut = spell(textOut)
@@ -105,12 +107,17 @@ while success:
                    filterText(lastRet)]
       sim = jaccard_similarity(sentences[0], sentences[1])
       if sim <= 0.7:
-        print("Stopped at", c/fps, "Seconds in")
+
         subChangeTrigger = False
         endTime = list(math.modf(c/fps + 2))
+        unmodifiedEnd = c/fps + 2
         endTime[0] = int(endTime[0] * 1000000)
         endTime[1] = int(endTime[1])
-        parsed.append(srt.Subtitle(index=subNumber, start=datetime.timedelta(seconds=startTime[1], microseconds=startTime[0]), end=datetime.timedelta(seconds=endTime[1], microseconds=endTime[0]), content=realisticFilter(lastRet), proprietary=""))
+        if unmodifiedEnd - unmodifiedStart > 0.5:
+          print("Stopped at", c / fps, "Seconds in")
+          parsed.append(srt.Subtitle(index=subNumber, start=datetime.timedelta(seconds=startTime[1], microseconds=startTime[0]), end=datetime.timedelta(seconds=endTime[1], microseconds=endTime[0]), content=realisticFilter(lastRet), proprietary=""))
+        else:
+          print("Sub thrown out because it did not last long enough(" + str(unmodifiedEnd - unmodifiedStart) + ") seconds")
     if ret != "":
 
       sentences = [filterText(ret),
@@ -123,7 +130,7 @@ while success:
         subNumber += 1
         print("Started at", c/fps, "Seconds in")
         startTime = list(math.modf(c/fps + 2))
-
+        unmodifiedStart = c/fps + 2
         startTime[0] = int(startTime[0] * 1000000)
         startTime[1] = int(startTime[1])
         print(startTime)
